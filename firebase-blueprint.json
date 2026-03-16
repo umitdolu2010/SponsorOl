@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the platform (Admin or Sponsor).",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "sponsor", null] },
+        "name": { "type": "string" },
+        "referenceId": { "type": "string", "description": "ID of the sponsor this user belongs to." },
+        "sponsorStatus": { "type": "string", "description": "Status of the sponsor application." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "name", "createdAt"]
+    },
+    "Sponsor": {
+      "title": "Sponsor",
+      "description": "A brand that advertises on wet wipes.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "status": { "type": "string", "enum": ["active", "inactive", "pending"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "contactEmail", "status", "createdAt"]
+    },
+    "Firm": {
+      "title": "Firm",
+      "description": "A business (cafe, restaurant) that distributes the wet wipes.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "logoUrl": { "type": "string", "format": "uri" },
+        "location": { "type": "string" },
+        "address": { "type": "string" },
+        "sequenceCode": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "contactEmail", "status", "createdAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "An advertising campaign created by a sponsor.",
+      "type": "object",
+      "properties": {
+        "sponsorId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "landingUrl": { "type": "string", "format": "uri" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "adminAdContent": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sponsorId", "title", "message", "landingUrl", "status", "createdAt", "updatedAt"]
+    },
+    "QRCode": {
+      "title": "QRCode",
+      "description": "A unique QR code mapping a sponsor to a firm.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "sponsorId": { "type": "string" },
+        "firmId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "sponsorId", "firmId", "status", "createdAt"]
+    },
+    "Analytics": {
+      "title": "Analytics",
+      "description": "Click tracking for QR codes.",
+      "type": "object",
+      "properties": {
+        "qrCodeId": { "type": "string" },
+        "sponsorId": { "type": "string" },
+        "firmId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "clickedAt": { "type": "string", "format": "date-time" },
+        "userAgent": { "type": "string" }
+      },
+      "required": ["qrCodeId", "sponsorId", "firmId", "clickedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles and roles."
+    },
+    "sponsors/{sponsorId}": {
+      "schema": { "$ref": "#/entities/Sponsor" },
+      "description": "Stores sponsor brands."
+    },
+    "firms/{firmId}": {
+      "schema": { "$ref": "#/entities/Firm" },
+      "description": "Stores customer firms."
+    },
+    "campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/Campaign" },
+      "description": "Stores advertising campaigns."
+    },
+    "qr_codes/{qrCodeId}": {
+      "schema": { "$ref": "#/entities/QRCode" },
+      "description": "Stores unique QR codes."
+    },
+    "analytics/{analyticsId}": {
+      "schema": { "$ref": "#/entities/Analytics" },
+      "description": "Stores click analytics."
+    }
+  }
+}

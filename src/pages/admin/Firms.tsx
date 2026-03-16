@@ -1,0 +1,243 @@
+import React, { useState, useEffect } from 'react';
+import { collection, query, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { Plus, Edit2, Check, X, MapPin } from 'lucide-react';
+
+export default function Firms() {
+  const [firms, setFirms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newFirm, setNewFirm] = useState({ 
+    name: '', 
+    contactEmail: '',
+    logoUrl: '',
+    location: '',
+    address: '',
+    sequenceCode: ''
+  });
+
+  useEffect(() => {
+    fetchFirms();
+  }, []);
+
+  const fetchFirms = async () => {
+    try {
+      const q = query(collection(db, 'firms'));
+      const snapshot = await getDocs(q);
+      const firmsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setFirms(firmsData);
+    } catch (error) {
+      console.error("Error fetching firms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddFirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addDoc(collection(db, 'firms'), {
+        ...newFirm,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      });
+      setShowAddModal(false);
+      setNewFirm({ name: '', contactEmail: '', logoUrl: '', location: '', address: '', sequenceCode: '' });
+      fetchFirms();
+    } catch (error) {
+      console.error("Error adding firm:", error);
+      alert("Firma eklenirken bir hata oluştu.");
+    }
+  };
+
+  const toggleStatus = async (firmId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await updateDoc(doc(db, 'firms', firmId), { status: newStatus });
+      fetchFirms();
+    } catch (error) {
+      console.error("Error updating firm status:", error);
+    }
+  };
+
+  if (loading) return <div className="p-4">Yükleniyor...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Firmalar (Müşteriler)</h2>
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-indigo-700"
+        >
+          <Plus className="w-4 h-4 mr-2" /> Yeni Firma Ekle
+        </button>
+      </div>
+
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firma</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İletişim</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sıra Kodu</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {firms.map((firm) => (
+              <tr key={firm.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
+                      {firm.logoUrl ? (
+                        <img src={firm.logoUrl} alt={firm.name} className="h-10 w-10 object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="text-gray-500 font-medium text-lg">{firm.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">{firm.name}</div>
+                      <div className="text-sm text-gray-500 flex items-center mt-1">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {firm.location || 'Konum belirtilmemiş'}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">{firm.contactEmail}</div>
+                  <div className="text-xs text-gray-500 truncate max-w-xs" title={firm.address}>{firm.address || 'Adres yok'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {firm.sequenceCode || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${firm.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {firm.status === 'active' ? 'Aktif' : 'Pasif'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button 
+                    onClick={() => toggleStatus(firm.id, firm.status)}
+                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                  >
+                    Durum Değiştir
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {firms.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">Henüz firma eklenmemiş.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showAddModal && (
+        <div className="fixed z-50 inset-0 overflow-y-auto" onClick={() => setShowAddModal(false)}>
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div 
+              className="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <form onSubmit={handleAddFirm}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">Yeni Firma Ekle</h3>
+                    <button type="button" onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-500">
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Firma Adı</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={newFirm.name}
+                        onChange={e => setNewFirm({...newFirm, name: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">İletişim E-posta</label>
+                      <input 
+                        type="email" 
+                        required
+                        value={newFirm.contactEmail}
+                        onChange={e => setNewFirm({...newFirm, contactEmail: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Logo URL</label>
+                      <input 
+                        type="url" 
+                        placeholder="https://example.com/logo.png"
+                        value={newFirm.logoUrl}
+                        onChange={e => setNewFirm({...newFirm, logoUrl: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Konum (İl/İlçe)</label>
+                        <input 
+                          type="text" 
+                          placeholder="Örn: Kadıköy, İstanbul"
+                          value={newFirm.location}
+                          onChange={e => setNewFirm({...newFirm, location: e.target.value})}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Sıra Kodu</label>
+                        <input 
+                          type="text" 
+                          placeholder="Örn: FRM-001"
+                          value={newFirm.sequenceCode}
+                          onChange={e => setNewFirm({...newFirm, sequenceCode: e.target.value})}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Açık Adres</label>
+                      <textarea 
+                        rows={3}
+                        value={newFirm.address}
+                        onChange={e => setNewFirm({...newFirm, address: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button type="submit" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Kaydet
+                  </button>
+                  <button type="button" onClick={() => setShowAddModal(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    İptal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

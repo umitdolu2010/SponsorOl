@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin') ||
+        (request.auth.token.email == "umitdolu2010@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isSponsor() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'sponsor';
+    }
+
+    function getSponsorId() {
+      return getUserData().referenceId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasRequiredFields(['email', 'name', 'createdAt']) &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('role' in data) || data.role == null || data.role in ['admin', 'sponsor']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.createdAt is string &&
+             (!('referenceId' in data) || (data.referenceId is string && data.referenceId.size() < 100)) &&
+             (!('sponsorStatus' in data) || (data.sponsorStatus is string && data.sponsorStatus in ['active', 'inactive', 'pending']));
+    }
+
+    function isValidSponsor(data) {
+      return hasRequiredFields(['name', 'contactEmail', 'status', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.contactEmail is string && isValidEmail(data.contactEmail) &&
+             data.status in ['active', 'inactive', 'pending'] &&
+             data.createdAt is string;
+    }
+
+    function isValidFirm(data) {
+      return hasRequiredFields(['name', 'contactEmail', 'status', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.contactEmail is string && isValidEmail(data.contactEmail) &&
+             data.status in ['active', 'inactive'] &&
+             data.createdAt is string &&
+             (!('logoUrl' in data) || (data.logoUrl is string && isValidUrl(data.logoUrl) && data.logoUrl.size() < 500)) &&
+             (!('location' in data) || (data.location is string && data.location.size() < 200)) &&
+             (!('address' in data) || (data.address is string && data.address.size() < 500)) &&
+             (!('sequenceCode' in data) || (data.sequenceCode is string && data.sequenceCode.size() < 50));
+    }
+
+    function isValidCampaign(data) {
+      return hasRequiredFields(['sponsorId', 'title', 'message', 'landingUrl', 'status', 'createdAt', 'updatedAt']) &&
+             data.sponsorId is string && data.sponsorId.size() > 0 && data.sponsorId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 2000 &&
+             data.landingUrl is string && isValidUrl(data.landingUrl) && data.landingUrl.size() < 500 &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             data.createdAt is string &&
+             data.updatedAt is string &&
+             (!('adminAdContent' in data) || (data.adminAdContent is string && data.adminAdContent.size() < 5000));
+    }
+
+    function isValidQRCode(data) {
+      return hasRequiredFields(['code', 'sponsorId', 'firmId', 'status', 'createdAt']) &&
+             data.code is string && data.code.size() > 0 && data.code.size() < 50 &&
+             data.sponsorId is string && data.sponsorId.size() > 0 && data.sponsorId.size() < 100 &&
+             data.firmId is string && data.firmId.size() > 0 && data.firmId.size() < 100 &&
+             data.status in ['active', 'inactive'] &&
+             data.createdAt is string &&
+             (!('campaignId' in data) || (data.campaignId is string && data.campaignId.size() < 100));
+    }
+
+    function isValidAnalytics(data) {
+      return hasRequiredFields(['qrCodeId', 'sponsorId', 'firmId', 'clickedAt']) &&
+             data.qrCodeId is string && data.qrCodeId.size() > 0 && data.qrCodeId.size() < 100 &&
+             data.sponsorId is string && data.sponsorId.size() > 0 && data.sponsorId.size() < 100 &&
+             data.firmId is string && data.firmId.size() > 0 && data.firmId.size() < 100 &&
+             data.clickedAt is string &&
+             (!('campaignId' in data) || (data.campaignId is string && data.campaignId.size() < 100)) &&
+             (!('userAgent' in data) || (data.userAgent is string && data.userAgent.size() < 500));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow create: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == null))) && isValidUser(request.resource.data);
+      allow update: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && request.resource.data.role == resource.data.role)) && isValidUser(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /sponsors/{sponsorId} {
+      // Anyone authenticated can read sponsors (needed for checking if they are a sponsor during login)
+      allow read: if isAuthenticated();
+      // Allow users to create a pending sponsor application for themselves
+      allow create: if (isAdmin() || (isAuthenticated() && request.resource.data.contactEmail == request.auth.token.email && request.resource.data.status == 'pending')) && isValidSponsor(request.resource.data);
+      allow update: if isAdmin() && isValidSponsor(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /firms/{firmId} {
+      // Sponsors can read firms to generate QR codes. Public can read active firms for FirmShowcase.
+      allow read: if isAdmin() || isSponsor() || (resource.data.status == 'active');
+      allow create: if isAdmin() && isValidFirm(request.resource.data);
+      allow update: if isAdmin() && isValidFirm(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if isAdmin() || (isSponsor() && getSponsorId() == resource.data.sponsorId) || (resource.data.status == 'approved');
+      allow create: if (isAdmin() || (isSponsor() && request.resource.data.sponsorId == getSponsorId())) && isValidCampaign(request.resource.data);
+      allow update: if (isAdmin() || (isSponsor() && resource.data.sponsorId == getSponsorId() && request.resource.data.sponsorId == resource.data.sponsorId && request.resource.data.status == 'pending')) && isValidCampaign(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /qr_codes/{qrCodeId} {
+      // Public can read active QR codes
+      allow read: if isAdmin() || (isSponsor() && getSponsorId() == resource.data.sponsorId) || (resource.data.status == 'active');
+      allow create: if (isAdmin() || (isSponsor() && request.resource.data.sponsorId == getSponsorId())) && isValidQRCode(request.resource.data);
+      allow update: if (isAdmin() || (isSponsor() && getSponsorId() == resource.data.sponsorId && request.resource.data.sponsorId == resource.data.sponsorId && request.resource.data.firmId == resource.data.firmId && request.resource.data.code == resource.data.code)) && isValidQRCode(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /analytics/{analyticsId} {
+      allow read: if isAdmin() || (isSponsor() && getSponsorId() == resource.data.sponsorId);
+      allow create: if isValidAnalytics(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}
