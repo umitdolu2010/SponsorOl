@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { QrCode, Building2 } from 'lucide-react';
+import { QrCode, Building2, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const { loginWithGoogle, currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     if (currentUser && userProfile) {
@@ -17,10 +19,14 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
+      setErrorMsg(null);
+      setIsLoggingIn(true);
       await loginWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      alert('Giriş yapılırken bir hata oluştu.');
+      setErrorMsg(error?.message || 'Giriş yapılırken bir hata oluştu.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -42,13 +48,30 @@ export default function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          
+          {errorMsg && (
+            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700 break-words">
+                    {errorMsg}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-6">
             <div>
               <button
                 onClick={handleLogin}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={isLoggingIn}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isLoggingIn ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
               >
-                Google ile Giriş Yap
+                {isLoggingIn ? 'Giriş Yapılıyor...' : 'Google ile Giriş Yap'}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {
