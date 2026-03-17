@@ -45,7 +45,8 @@ service cloud.firestore {
     function isValidUser(data) {
       return hasRequiredFields(['email', 'name', 'createdAt']) &&
              data.email is string && isValidEmail(data.email) &&
-             (!('role' in data) || data.role == null || data.role in ['admin', 'sponsor']) &&
+             (!('role' in data) || data.role == null || data.role in ['admin', 'sponsor', 'firm']) &&
+             (!('requestedRole' in data) || data.requestedRole == null || data.requestedRole in ['admin', 'sponsor', 'firm']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.createdAt is string &&
              (!('referenceId' in data) || (data.referenceId is string && data.referenceId.size() < 100)) &&

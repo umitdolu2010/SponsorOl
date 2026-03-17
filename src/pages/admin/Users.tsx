@@ -100,7 +100,16 @@ export default function Users() {
                   {user.role === 'admin' && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"><Shield className="w-3 h-3 mr-1" /> Admin</span>}
                   {user.role === 'sponsor' && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><UsersIcon className="w-3 h-3 mr-1" /> Sponsor</span>}
                   {user.role === 'firm' && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><Briefcase className="w-3 h-3 mr-1" /> Firma</span>}
-                  {!user.role && <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Onay Bekliyor</span>}
+                  {!user.role && (
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Onay Bekliyor</span>
+                      {user.requestedRole && (
+                        <span className="inline-flex items-center text-xs font-medium text-indigo-600">
+                          Talep: {user.requestedRole === 'admin' ? 'Admin' : user.requestedRole === 'sponsor' ? 'Sponsor' : 'Firma'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {user.referenceId ? getReferenceName(user.role, user.referenceId) : '-'}
@@ -109,7 +118,7 @@ export default function Users() {
                   <button 
                     onClick={() => {
                       setSelectedUser(user);
-                      setAssignRole(user.role || '');
+                      setAssignRole(user.role || user.requestedRole || '');
                       setAssignRefId(user.referenceId || '');
                     }}
                     className="text-indigo-600 hover:text-indigo-900"

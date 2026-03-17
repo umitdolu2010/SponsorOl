@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Clock, Send, CheckCircle } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
+import { LogOut, Clock, Send, CheckCircle, Shield, Briefcase, Users } from 'lucide-react';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export default function PendingApproval() {
@@ -9,87 +9,135 @@ export default function PendingApproval() {
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState('');
 
-  const handleApply = async () => {
-    if (!userProfile?.email) return;
+  const handleRoleRequest = async (role: 'admin' | 'sponsor' | 'firm') => {
+    if (!userProfile?.uid) return;
     setIsApplying(true);
     setError('');
     
     try {
-      await addDoc(collection(db, 'sponsors'), {
-        name: userProfile.name || userProfile.email.split('@')[0],
-        contactEmail: userProfile.email,
-        status: 'pending',
-        createdAt: new Date().toISOString()
+      await updateDoc(doc(db, 'users', userProfile.uid), {
+        requestedRole: role
       });
       
-      // Refresh profile to get the new sponsorStatus
       await refreshProfile();
     } catch (err) {
-      console.error("Error applying for sponsorship:", err);
-      setError('Başvuru sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      console.error("Error requesting role:", err);
+      setError('Rol talebi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setIsApplying(false);
     }
   };
 
-  const hasApplied = userProfile?.sponsorStatus === 'pending';
+  const hasApplied = userProfile?.sponsorStatus === 'pending' || userProfile?.requestedRole;
+
+  if (!hasApplied && !userProfile?.requestedRole) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-3xl">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-extrabold text-gray-900">SponsorOl'a Hoş Geldiniz!</h2>
+            <p className="mt-2 text-lg text-gray-600">Lütfen sisteme hangi rol ile katılmak istediğinizi seçin.</p>
+          </div>
+
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {/* Sponsor Card */}
+            <div 
+              onClick={() => !isApplying && handleRoleRequest('sponsor')}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-indigo-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <div className="px-4 py-5 sm:p-6 text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
+                  <Users className="h-8 w-8 text-indigo-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Sponsor Olmak İstiyorum</h3>
+                <p className="text-sm text-gray-500">
+                  Firmalara sponsor olarak reklam vermek ve QR kod kampanyaları oluşturmak istiyorum.
+                </p>
+              </div>
+            </div>
+
+            {/* Firm Card */}
+            <div 
+              onClick={() => !isApplying && handleRoleRequest('firm')}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-emerald-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <div className="px-4 py-5 sm:p-6 text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
+                  <Briefcase className="h-8 w-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Firma Olarak Katılmak İstiyorum</h3>
+                <p className="text-sm text-gray-500">
+                  İşletmemde sponsorlu QR kodları sergilemek ve sisteme dahil olmak istiyorum.
+                </p>
+              </div>
+            </div>
+
+            {/* Admin Card */}
+            <div 
+              onClick={() => !isApplying && handleRoleRequest('admin')}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-purple-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <div className="px-4 py-5 sm:p-6 text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-purple-100 mb-4">
+                  <Shield className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Yönetici (Admin) Olmak İstiyorum</h3>
+                <p className="text-sm text-gray-500">
+                  Sistemi yönetmek ve diğer kullanıcılara destek olmak için yönetici yetkisi istiyorum.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <button
+              onClick={logout}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Farklı Bir Hesapla Giriş Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className={`h-16 w-16 rounded-full flex items-center justify-center shadow-sm ${hasApplied ? 'bg-yellow-100' : 'bg-indigo-100'}`}>
-            {hasApplied ? (
-              <Clock className="h-8 w-8 text-yellow-600" />
-            ) : (
-              <Send className="h-8 w-8 text-indigo-600" />
-            )}
+          <div className={`h-16 w-16 rounded-full flex items-center justify-center shadow-sm bg-yellow-100`}>
+            <Clock className="h-8 w-8 text-yellow-600" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {hasApplied ? 'Onay Bekleniyor' : 'Sponsorluk Başvurusu'}
+          Onay Bekleniyor
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          {hasApplied 
-            ? 'Sponsorluk başvurunuz alındı ve yönetici onayı bekleniyor.' 
-            : 'Sisteme kayıtlı bir sponsor hesabınız bulunmuyor.'}
+          {userProfile?.requestedRole === 'admin' && "Yönetici (Admin) yetkisi talep ettiniz."}
+          {userProfile?.requestedRole === 'sponsor' && "Sponsor yetkisi talep ettiniz."}
+          {userProfile?.requestedRole === 'firm' && "Firma yetkisi talep ettiniz."}
+          <br />
+          Kayıt işleminiz başarıyla alındı. Yöneticilerimiz hesabınızı inceledikten sonra onaylayacaktır.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 text-center">
-          
-          {hasApplied ? (
-            <>
-              <div className="mb-6 flex flex-col items-center justify-center text-green-600">
-                <CheckCircle className="h-12 w-12 mb-2" />
-                <p className="font-medium">Başvurunuz başarıyla iletildi!</p>
-              </div>
-              <p className="text-gray-700 mb-6 text-sm">
-                Yöneticilerimiz başvurunuzu inceledikten sonra hesabınızı aktifleştirecektir. Lütfen daha sonra tekrar kontrol edin.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-gray-700 mb-6 text-sm">
-                Sponsor olarak platformda yer almak ve kampanyalarınızı yönetmek için hemen başvuru yapabilirsiniz.
-              </p>
-              
-              {error && (
-                <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleApply}
-                disabled={isApplying}
-                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 mb-4"
-              >
-                {isApplying ? 'Başvuru Yapılıyor...' : 'Sponsor Olmak İçin Başvur'}
-              </button>
-            </>
-          )}
+          <div className="mb-6 flex flex-col items-center justify-center text-green-600">
+            <CheckCircle className="h-12 w-12 mb-2" />
+            <p className="font-medium">Talebiniz başarıyla iletildi!</p>
+          </div>
+          <p className="text-gray-700 mb-6 text-sm">
+            Yöneticilerimiz başvurunuzu inceledikten sonra hesabınızı aktifleştirecektir. Lütfen daha sonra tekrar kontrol edin.
+          </p>
           
           <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm text-gray-600 text-left">
             <p><strong>Kayıtlı Email:</strong> {userProfile?.email}</p>

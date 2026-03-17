@@ -3,7 +3,7 @@ import { User, onAuthStateChanged, signInWithPopup, getRedirectResult, GoogleAut
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
-export type UserRole = 'admin' | 'sponsor' | null;
+export type UserRole = 'admin' | 'sponsor' | 'firm' | null;
 
 interface UserProfile {
   uid: string;
@@ -12,6 +12,7 @@ interface UserProfile {
   name: string;
   referenceId?: string | null;
   sponsorStatus?: string | null;
+  requestedRole?: 'admin' | 'sponsor' | 'firm' | null;
   createdAt: string;
 }
 
