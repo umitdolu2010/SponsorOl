@@ -74,7 +74,7 @@ export default function Sponsors() {
   };
 
   const copyInviteLink = (email: string, id: string) => {
-    const text = `SponsorOl.com'a davet edildiniz!\n\nSisteme giriş yapmak için aşağıdaki linke tıklayın ve ${email} adresli Google hesabınızla giriş yapın:\n${appUrl}/login`;
+    const text = `SponsorOl.com'a davet edildiniz!\n\nSisteme giriş yapmak için aşağıdaki linke tıklayın ve ${email} adresli Google hesabınızla giriş yapın:\n${appUrl}/#/login`;
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);

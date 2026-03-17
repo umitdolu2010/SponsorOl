@@ -92,7 +92,7 @@ export default function MyQRCodes() {
             <div className="p-6 flex flex-col items-center border-b border-gray-100">
               <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100 mb-4">
                 <QRCodeSVG 
-                  value={`${appUrl}/r/${qr.code}`} 
+                  value={`${appUrl}/#/r/${qr.code}`} 
                   size={128}
                   level="H"
                   includeMargin={true}
@@ -104,8 +104,8 @@ export default function MyQRCodes() {
                 </span>
                 <div className="flex items-center justify-center text-xs text-gray-500 mb-1">
                   <LinkIcon className="w-3 h-3 mr-1" />
-                  <a href={`${appUrl}/r/${qr.code}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 truncate max-w-[200px]">
-                    {appUrl}/r/{qr.code}
+                  <a href={`${appUrl}/#/r/${qr.code}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 truncate max-w-[200px]">
+                    {appUrl}/#/r/{qr.code}
                   </a>
                 </div>
               </div>
