@@ -61,15 +61,18 @@ service cloud.firestore {
     }
 
     function isValidFirm(data) {
-      return hasRequiredFields(['name', 'contactEmail', 'status', 'createdAt']) &&
+      return hasRequiredFields(['name', 'phone', 'contactPerson', 'status', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.contactEmail is string && isValidEmail(data.contactEmail) &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 50 &&
+             data.contactPerson is string && data.contactPerson.size() > 0 && data.contactPerson.size() < 100 &&
+             (!('contactEmail' in data) || data.contactEmail == '' || (data.contactEmail is string && isValidEmail(data.contactEmail))) &&
              data.status in ['active', 'inactive'] &&
              data.createdAt is string &&
              (!('logoUrl' in data) || (data.logoUrl is string && isValidUrl(data.logoUrl) && data.logoUrl.size() < 500)) &&
              (!('location' in data) || (data.location is string && data.location.size() < 200)) &&
              (!('address' in data) || (data.address is string && data.address.size() < 500)) &&
-             (!('sequenceCode' in data) || (data.sequenceCode is string && data.sequenceCode.size() < 50));
+             (!('sequenceCode' in data) || (data.sequenceCode is string && data.sequenceCode.size() < 50)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() < 2000));
     }
 
     function isValidCampaign(data) {

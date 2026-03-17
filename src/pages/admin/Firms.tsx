@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { Plus, Edit2, Check, X, MapPin } from 'lucide-react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../firebase';
+import { Plus, Edit2, Check, X, MapPin, Upload } from 'lucide-react';
 
 export default function Firms() {
   const [firms, setFirms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [newFirm, setNewFirm] = useState({ 
     name: '', 
     contactEmail: '',
+    phone: '',
+    contactPerson: '',
+    notes: '',
     logoUrl: '',
     location: '',
     address: '',
@@ -33,6 +38,24 @@ export default function Firms() {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingLogo(true);
+      const storageRef = ref(storage, `firm_logos/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      setNewFirm(prev => ({ ...prev, logoUrl: downloadUrl }));
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      alert("Logo yüklenirken bir hata oluştu. Lütfen Firebase Console üzerinden Storage hizmetinin aktif ve kurallarının yazmaya açık olduğundan emin olun.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleAddFirm = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -42,7 +65,7 @@ export default function Firms() {
         createdAt: new Date().toISOString()
       });
       setShowAddModal(false);
-      setNewFirm({ name: '', contactEmail: '', logoUrl: '', location: '', address: '', sequenceCode: '' });
+      setNewFirm({ name: '', contactEmail: '', phone: '', contactPerson: '', notes: '', logoUrl: '', location: '', address: '', sequenceCode: '' });
       fetchFirms();
     } catch (error) {
       console.error("Error adding firm:", error);
@@ -90,9 +113,9 @@ export default function Firms() {
               <tr key={firm.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
+                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 p-1">
                       {firm.logoUrl ? (
-                        <img src={firm.logoUrl} alt={firm.name} className="h-10 w-10 object-cover" referrerPolicy="no-referrer" />
+                        <img src={firm.logoUrl} alt={firm.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
                       ) : (
                         <span className="text-gray-500 font-medium text-lg">{firm.name.charAt(0).toUpperCase()}</span>
                       )}
@@ -103,11 +126,18 @@ export default function Firms() {
                         <MapPin className="w-3 h-3 mr-1" />
                         {firm.location || 'Konum belirtilmemiş'}
                       </div>
+                      {firm.notes && (
+                        <div className="text-xs text-indigo-600 mt-1 truncate max-w-[200px]" title={firm.notes}>
+                          Not: {firm.notes}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{firm.contactEmail}</div>
+                  <div className="text-sm font-medium text-gray-900">{firm.contactPerson || <span className="text-gray-400 italic">Yetkili Yok</span>}</div>
+                  <div className="text-sm text-gray-900">{firm.phone || <span className="text-gray-400 italic">Telefon Yok</span>}</div>
+                  <div className="text-xs text-gray-500">{firm.contactEmail || <span className="text-gray-400 italic">E-posta Yok</span>}</div>
                   <div className="text-xs text-gray-500 truncate max-w-xs" title={firm.address}>{firm.address || 'Adres yok'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -157,7 +187,7 @@ export default function Firms() {
                     </button>
                   </div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Firma Adı</label>
                       <input 
@@ -168,12 +198,34 @@ export default function Firms() {
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       />
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Yetkili Kişi</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={newFirm.contactPerson}
+                          onChange={e => setNewFirm({...newFirm, contactPerson: e.target.value})}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Telefon</label>
+                        <input 
+                          type="tel" 
+                          required
+                          value={newFirm.phone}
+                          onChange={e => setNewFirm({...newFirm, phone: e.target.value})}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">İletişim E-posta</label>
+                      <label className="block text-sm font-medium text-gray-700">İletişim E-posta (İsteğe Bağlı)</label>
                       <input 
                         type="email" 
-                        required
                         value={newFirm.contactEmail}
                         onChange={e => setNewFirm({...newFirm, contactEmail: e.target.value})}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
@@ -181,14 +233,31 @@ export default function Firms() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Logo URL</label>
-                      <input 
-                        type="url" 
-                        placeholder="https://example.com/logo.png"
-                        value={newFirm.logoUrl}
-                        onChange={e => setNewFirm({...newFirm, logoUrl: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
+                      <label className="block text-sm font-medium text-gray-700">Logo</label>
+                      <div className="mt-1 flex items-center space-x-4">
+                        <div className="flex-shrink-0 h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border border-gray-300 p-1">
+                          {newFirm.logoUrl ? (
+                            <img src={newFirm.logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-gray-400 text-xs text-center px-1">Görsel Yok</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <label className={`cursor-pointer flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <Upload className="w-4 h-4 mr-2" />
+                            {uploadingLogo ? 'Yükleniyor...' : 'Telefondan Görsel Seç'}
+                            <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                          </label>
+                          <p className="mt-1 text-xs text-gray-500">Veya URL girebilirsiniz:</p>
+                          <input 
+                            type="url" 
+                            placeholder="https://example.com/logo.png"
+                            value={newFirm.logoUrl}
+                            onChange={e => setNewFirm({...newFirm, logoUrl: e.target.value})}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -217,9 +286,20 @@ export default function Firms() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Açık Adres</label>
                       <textarea 
-                        rows={3}
+                        rows={2}
                         value={newFirm.address}
                         onChange={e => setNewFirm({...newFirm, address: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">İşletme İçin Notlar (Sadece Admin Görür)</label>
+                      <textarea 
+                        rows={3}
+                        placeholder="İşletme ile ilgili özel notlar, görüşmeler vb."
+                        value={newFirm.notes}
+                        onChange={e => setNewFirm({...newFirm, notes: e.target.value})}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       />
                     </div>

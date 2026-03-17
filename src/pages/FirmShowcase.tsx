@@ -64,9 +64,9 @@ export default function FirmShowcase() {
               >
                 <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
                   {/* Logo */}
-                  <div className="flex-shrink-0 h-24 w-24 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden shadow-inner">
+                  <div className="flex-shrink-0 h-24 w-24 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden shadow-inner p-2">
                     {firm.logoUrl ? (
-                      <img src={firm.logoUrl} alt={firm.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={firm.logoUrl} alt={firm.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
                     ) : (
                       <span className="text-gray-400 font-bold text-4xl">{firm.name.charAt(0).toUpperCase()}</span>
                     )}
@@ -84,13 +84,6 @@ export default function FirmShowcase() {
                         </div>
                       )}
                       
-                      {firm.contactEmail && (
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                          <span className="truncate">{firm.contactEmail}</span>
-                        </div>
-                      )}
-
                       {firm.sequenceCode && (
                         <div className="flex items-center">
                           <Hash className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
@@ -98,6 +91,12 @@ export default function FirmShowcase() {
                         </div>
                       )}
                     </div>
+                    
+                    {firm.notes && (
+                      <div className="mt-4 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        {firm.notes}
+                      </div>
+                    )}
 
                     {firm.address && (
                       <div className="mt-4 pt-4 border-t border-gray-50 text-sm text-gray-500">
