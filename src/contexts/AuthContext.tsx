@@ -72,10 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userDoc.exists()) {
         const existingProfile = userDoc.data() as UserProfile;
-        // Update role and referenceId in case it changed in the background
+        
+        // Only update role if a new role was automatically determined (e.g. they became a sponsor)
+        // OR if they are the default admin. Otherwise, keep their existing manually assigned role.
+        const finalRole = assignedRole || existingProfile.role || null;
+
         const updatedProfile: UserProfile = {
           ...existingProfile,
-          role: assignedRole,
+          role: finalRole,
         };
         
         // Only add these fields if they are not null, or explicitly set them to null if they were previously set
