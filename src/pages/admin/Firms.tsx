@@ -59,11 +59,23 @@ export default function Firms() {
   const handleAddFirm = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'firms'), {
-        ...newFirm,
+      // Clean up empty optional fields to prevent Firestore validation errors
+      const firmData: any = {
+        name: newFirm.name,
+        phone: newFirm.phone,
+        contactPerson: newFirm.contactPerson,
         status: 'active',
         createdAt: new Date().toISOString()
-      });
+      };
+
+      if (newFirm.contactEmail) firmData.contactEmail = newFirm.contactEmail;
+      if (newFirm.notes) firmData.notes = newFirm.notes;
+      if (newFirm.logoUrl) firmData.logoUrl = newFirm.logoUrl;
+      if (newFirm.location) firmData.location = newFirm.location;
+      if (newFirm.address) firmData.address = newFirm.address;
+      if (newFirm.sequenceCode) firmData.sequenceCode = newFirm.sequenceCode;
+
+      await addDoc(collection(db, 'firms'), firmData);
       setShowAddModal(false);
       setNewFirm({ name: '', contactEmail: '', phone: '', contactPerson: '', notes: '', logoUrl: '', location: '', address: '', sequenceCode: '' });
       fetchFirms();

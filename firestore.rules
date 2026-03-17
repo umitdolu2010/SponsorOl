@@ -68,11 +68,11 @@ service cloud.firestore {
              (!('contactEmail' in data) || data.contactEmail == '' || (data.contactEmail is string && isValidEmail(data.contactEmail))) &&
              data.status in ['active', 'inactive'] &&
              data.createdAt is string &&
-             (!('logoUrl' in data) || (data.logoUrl is string && isValidUrl(data.logoUrl) && data.logoUrl.size() < 500)) &&
-             (!('location' in data) || (data.location is string && data.location.size() < 200)) &&
-             (!('address' in data) || (data.address is string && data.address.size() < 500)) &&
-             (!('sequenceCode' in data) || (data.sequenceCode is string && data.sequenceCode.size() < 50)) &&
-             (!('notes' in data) || (data.notes is string && data.notes.size() < 2000));
+             (!('logoUrl' in data) || data.logoUrl == '' || (data.logoUrl is string && isValidUrl(data.logoUrl) && data.logoUrl.size() < 500)) &&
+             (!('location' in data) || data.location == '' || (data.location is string && data.location.size() < 200)) &&
+             (!('address' in data) || data.address == '' || (data.address is string && data.address.size() < 500)) &&
+             (!('sequenceCode' in data) || data.sequenceCode == '' || (data.sequenceCode is string && data.sequenceCode.size() < 50)) &&
+             (!('notes' in data) || data.notes == '' || (data.notes is string && data.notes.size() < 2000));
     }
 
     function isValidCampaign(data) {
