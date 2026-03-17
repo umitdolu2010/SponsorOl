@@ -15,6 +15,13 @@ const config = {
 };
 
 const app = initializeApp(config);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// If using a custom project ID from env vars, default to '(default)' database unless specified.
+// Otherwise, use the AI Studio specific database ID.
+const customDbId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+const isCustomProject = !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const dbId = customDbId || (isCustomProject ? '(default)' : firebaseConfig.firestoreDatabaseId);
+
+export const db = getFirestore(app, dbId);
 export const auth = getAuth(app);
 

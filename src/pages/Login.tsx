@@ -4,10 +4,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { QrCode, Building2, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { loginWithGoogle, currentUser, userProfile } = useAuth();
+  const { loginWithGoogle, currentUser, userProfile, authError } = useAuth();
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    if (authError) {
+      setErrorMsg(authError);
+      setIsLoggingIn(false);
+    }
+  }, [authError]);
 
   useEffect(() => {
     if (currentUser && userProfile) {

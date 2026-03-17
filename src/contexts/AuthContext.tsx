@@ -19,6 +19,7 @@ interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  authError: string | null;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -38,65 +39,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const fetchUserProfile = async (user: User) => {
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-    
-    let assignedRole: UserRole = null;
-    let referenceId: string | null = null;
-    let sponsorStatus: string | null = null;
+    try {
+      setAuthError(null);
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      let assignedRole: UserRole = null;
+      let referenceId: string | null = null;
+      let sponsorStatus: string | null = null;
 
-    // Check if user is the default admin
-    const isDefaultAdmin = user.email === 'umitdolu2010@gmail.com' && user.emailVerified;
-    assignedRole = isDefaultAdmin ? 'admin' : null;
+      // Check if user is the default admin
+      const isDefaultAdmin = user.email === 'umitdolu2010@gmail.com' && user.emailVerified;
+      assignedRole = isDefaultAdmin ? 'admin' : null;
 
-    // If not admin, check if email exists in sponsors
-    if (!assignedRole && user.email) {
-      const sponsorQuery = query(collection(db, 'sponsors'), where('contactEmail', '==', user.email));
-      const sponsorSnapshot = await getDocs(sponsorQuery);
-      if (!sponsorSnapshot.empty) {
-        const sponsorData = sponsorSnapshot.docs[0].data();
-        referenceId = sponsorSnapshot.docs[0].id;
-        sponsorStatus = sponsorData.status || null;
-        
-        if (sponsorStatus === 'active') {
-          assignedRole = 'sponsor';
+      // If not admin, check if email exists in sponsors
+      if (!assignedRole && user.email) {
+        const sponsorQuery = query(collection(db, 'sponsors'), where('contactEmail', '==', user.email));
+        const sponsorSnapshot = await getDocs(sponsorQuery);
+        if (!sponsorSnapshot.empty) {
+          const sponsorData = sponsorSnapshot.docs[0].data();
+          referenceId = sponsorSnapshot.docs[0].id;
+          sponsorStatus = sponsorData.status || null;
+          
+          if (sponsorStatus === 'active') {
+            assignedRole = 'sponsor';
+          }
         }
       }
-    }
 
-    if (userDoc.exists()) {
-      const existingProfile = userDoc.data() as UserProfile;
-      // Update role and referenceId in case it changed in the background
-      const updatedProfile: UserProfile = {
-        ...existingProfile,
-        role: assignedRole,
-      };
-      
-      // Only add these fields if they are not null, or explicitly set them to null if they were previously set
-      if (referenceId !== null) updatedProfile.referenceId = referenceId;
-      else if (existingProfile.referenceId) updatedProfile.referenceId = null;
-      
-      if (sponsorStatus !== null) updatedProfile.sponsorStatus = sponsorStatus;
-      else if (existingProfile.sponsorStatus) updatedProfile.sponsorStatus = null;
+      if (userDoc.exists()) {
+        const existingProfile = userDoc.data() as UserProfile;
+        // Update role and referenceId in case it changed in the background
+        const updatedProfile: UserProfile = {
+          ...existingProfile,
+          role: assignedRole,
+        };
+        
+        // Only add these fields if they are not null, or explicitly set them to null if they were previously set
+        if (referenceId !== null) updatedProfile.referenceId = referenceId;
+        else if (existingProfile.referenceId) updatedProfile.referenceId = null;
+        
+        if (sponsorStatus !== null) updatedProfile.sponsorStatus = sponsorStatus;
+        else if (existingProfile.sponsorStatus) updatedProfile.sponsorStatus = null;
 
-      await setDoc(userDocRef, updatedProfile);
-      setUserProfile(updatedProfile);
-    } else {
-      const newProfile: UserProfile = {
-        uid: user.uid,
-        email: user.email || '',
-        role: assignedRole,
-        name: user.displayName || 'Unknown',
-        createdAt: new Date().toISOString(),
-      };
-      
-      if (referenceId !== null) newProfile.referenceId = referenceId;
-      if (sponsorStatus !== null) newProfile.sponsorStatus = sponsorStatus;
+        await setDoc(userDocRef, updatedProfile);
+        setUserProfile(updatedProfile);
+      } else {
+        const newProfile: UserProfile = {
+          uid: user.uid,
+          email: user.email || '',
+          role: assignedRole,
+          name: user.displayName || 'Unknown',
+          createdAt: new Date().toISOString(),
+        };
+        
+        if (referenceId !== null) newProfile.referenceId = referenceId;
+        if (sponsorStatus !== null) newProfile.sponsorStatus = sponsorStatus;
 
-      await setDoc(userDocRef, newProfile);
-      setUserProfile(newProfile);
+        await setDoc(userDocRef, newProfile);
+        setUserProfile(newProfile);
+      }
+    } catch (error: any) {
+      console.error("Error in fetchUserProfile:", error);
+      setAuthError(error?.message || "Kullanıcı profili alınırken bir hata oluştu.");
+      // If we fail to fetch/create profile, sign out to prevent broken state
+      await signOut(auth);
+      setCurrentUser(null);
+      setUserProfile(null);
     }
   };
 
@@ -133,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     userProfile,
     loading,
+    authError,
     loginWithGoogle,
     logout,
     refreshProfile,
