@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, getDocs, where, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Building2, MapPin, QrCode, Check } from 'lucide-react';
+import { Building2, QrCode, Check } from 'lucide-react';
 
 export default function FirmsList() {
   const { userProfile } = useAuth();
@@ -76,17 +76,16 @@ export default function FirmsList() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">{firm.name}</h3>
-                  <div className="flex items-center text-sm text-gray-500 mt-1">
-                    <MapPin className="w-4 h-4 mr-1 shrink-0" />
-                    <span className="truncate">{firm.location || 'Konum belirtilmedi'}</span>
-                  </div>
                 </div>
               </div>
               
-              {firm.address && (
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2" title={firm.address}>
-                  {firm.address}
-                </p>
+              {firm.notes && (
+                <div className="mb-4 p-3 bg-indigo-50 rounded-md border border-indigo-100">
+                  <p className="text-xs font-semibold text-indigo-800 mb-1">İşletme İçin Notlar:</p>
+                  <p className="text-sm text-indigo-700 line-clamp-3" title={firm.notes}>
+                    {firm.notes}
+                  </p>
+                </div>
               )}
 
               <button
