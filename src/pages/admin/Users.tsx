@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, updateDoc, doc, deleteField } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Shield, Briefcase, Users as UsersIcon, X } from 'lucide-react';
 
@@ -49,7 +49,7 @@ export default function Users() {
     try {
       const updateData: any = { 
         role: assignRole,
-        requestedRole: null // Clear the requested role once assigned
+        requestedRole: deleteField() // Clear the requested role once assigned
       };
       if (!selectedUser.createdAt) {
         updateData.createdAt = new Date().toISOString();
@@ -57,7 +57,7 @@ export default function Users() {
       if (assignRole === 'sponsor' || assignRole === 'firm') {
         updateData.referenceId = assignRefId;
       } else {
-        updateData.referenceId = null; // Admin has no referenceId
+        updateData.referenceId = deleteField(); // Admin has no referenceId
       }
 
       await updateDoc(doc(db, 'users', selectedUser.id), updateData);
@@ -66,9 +66,9 @@ export default function Users() {
       setAssignRole('');
       setAssignRefId('');
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user role:", error);
-      alert("Kullanıcı yetkilendirilirken bir hata oluştu.");
+      alert("Kullanıcı yetkilendirilirken bir hata oluştu: " + (error.message || "Bilinmeyen hata"));
     }
   };
 

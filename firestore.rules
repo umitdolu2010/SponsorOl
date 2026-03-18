@@ -43,12 +43,11 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
     function isValidUser(data) {
-      return hasRequiredFields(['email', 'name']) &&
-             data.email is string && isValidEmail(data.email) &&
+      return (!('email' in data) || data.email == '' || (data.email is string && isValidEmail(data.email))) &&
              (!('role' in data) || data.role == null || data.role in ['admin', 'sponsor', 'firm']) &&
              (!('requestedRole' in data) || data.requestedRole == null || data.requestedRole in ['admin', 'sponsor', 'firm']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             (!('createdAt' in data) || data.createdAt is string) &&
+             (!('name' in data) || (data.name is string && data.name.size() < 100)) &&
+             (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp || data.createdAt is number) &&
              (!('referenceId' in data) || data.referenceId == null || (data.referenceId is string && data.referenceId.size() < 100)) &&
              (!('sponsorStatus' in data) || data.sponsorStatus == null || (data.sponsorStatus is string && data.sponsorStatus in ['active', 'inactive', 'pending']));
     }
@@ -114,10 +113,23 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    function isValidSponsorClaim(refId) {
+      return refId != null && 
+             exists(/databases/$(database)/documents/sponsors/$(refId)) &&
+             get(/databases/$(database)/documents/sponsors/$(refId)).data.contactEmail == request.auth.token.email &&
+             get(/databases/$(database)/documents/sponsors/$(refId)).data.status == 'active';
+    }
+
     match /users/{userId} {
       allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
-      allow create: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == null))) && isValidUser(request.resource.data);
-      allow update: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && request.resource.data.role == resource.data.role)) && isValidUser(request.resource.data) && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow create: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == null || (request.resource.data.role == 'sponsor' && isValidSponsorClaim(request.resource.data.referenceId))))) && isValidUser(request.resource.data);
+      allow update: if isValidUser(request.resource.data) && (
+        isAdmin() || 
+        (isAuthenticated() && request.auth.uid == userId && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) && (
+          request.resource.data.role == resource.data.role || 
+          (request.resource.data.role == 'sponsor' && isValidSponsorClaim(request.resource.data.referenceId))
+        ))
+      );
       allow delete: if isAdmin();
     }
 
