@@ -20,6 +20,7 @@ export default function Login() {
     if (currentUser && userProfile) {
       if (userProfile.role === 'admin') navigate('/admin');
       else if (userProfile.role === 'sponsor') navigate('/sponsor');
+      else if (userProfile.role === 'firm') navigate('/firm');
       else navigate('/pending');
     }
   }, [currentUser, userProfile, navigate]);

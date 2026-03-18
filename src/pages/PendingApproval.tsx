@@ -8,8 +8,13 @@ export default function PendingApproval() {
   const { logout, userProfile, refreshProfile } = useAuth();
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleRoleRequest = async (role: 'admin' | 'sponsor' | 'firm') => {
+    if (!acceptedTerms) {
+      setError('Lütfen devam etmeden önce Hizmet ve Kullanım Koşullarını kabul edin.');
+      return;
+    }
     if (!userProfile?.uid) return;
     setIsApplying(true);
     setError('');
@@ -45,11 +50,27 @@ export default function PendingApproval() {
             </div>
           )}
 
+          <div className="mb-6 flex items-center justify-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <input
+              id="terms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => {
+                setAcceptedTerms(e.target.checked);
+                if (e.target.checked) setError('');
+              }}
+              className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+            />
+            <label htmlFor="terms" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer select-none">
+              <a href="#" className="text-indigo-600 hover:text-indigo-500 hover:underline">Hizmet ve Kullanım Koşullarını</a> okudum ve kabul ediyorum.
+            </label>
+          </div>
+
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {/* Sponsor Card */}
             <div 
               onClick={() => !isApplying && handleRoleRequest('sponsor')}
-              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-indigo-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-indigo-500 cursor-pointer transition-all ${isApplying || !acceptedTerms ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <div className="px-4 py-5 sm:p-6 text-center">
                 <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
@@ -65,7 +86,7 @@ export default function PendingApproval() {
             {/* Firm Card */}
             <div 
               onClick={() => !isApplying && handleRoleRequest('firm')}
-              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-emerald-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-emerald-500 cursor-pointer transition-all ${isApplying || !acceptedTerms ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <div className="px-4 py-5 sm:p-6 text-center">
                 <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
@@ -81,7 +102,7 @@ export default function PendingApproval() {
             {/* Admin Card */}
             <div 
               onClick={() => !isApplying && handleRoleRequest('admin')}
-              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-purple-500 cursor-pointer transition-all ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`bg-white overflow-hidden shadow rounded-lg border-2 border-transparent hover:border-purple-500 cursor-pointer transition-all ${isApplying || !acceptedTerms ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <div className="px-4 py-5 sm:p-6 text-center">
                 <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-purple-100 mb-4">

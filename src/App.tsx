@@ -14,6 +14,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import SponsorDashboard from './pages/sponsor/SponsorDashboard';
 import LandingPage from './pages/LandingPage';
 import FirmShowcase from './pages/FirmShowcase';
+import FirmDashboard from './pages/firm/FirmDashboard';
 
 export default function App() {
   return (
@@ -33,6 +34,12 @@ export default function App() {
           <Route path="/sponsor/*" element={
             <ProtectedRoute allowedRoles={['sponsor']}>
               <SponsorDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/firm/*" element={
+            <ProtectedRoute allowedRoles={['firm']}>
+              <FirmDashboard />
             </ProtectedRoute>
           } />
           

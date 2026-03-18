@@ -8,7 +8,7 @@ export default function Sponsors() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sponsorToDelete, setSponsorToDelete] = useState<any | null>(null);
-  const [newSponsor, setNewSponsor] = useState({ name: '', contactEmail: '' });
+  const [newSponsor, setNewSponsor] = useState({ name: '', contactEmail: '', phone: '', contactPerson: '' });
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -45,7 +45,7 @@ export default function Sponsors() {
         createdAt: new Date().toISOString()
       });
       setShowAddModal(false);
-      setNewSponsor({ name: '', contactEmail: '' });
+      setNewSponsor({ name: '', contactEmail: '', phone: '', contactPerson: '' });
       fetchSponsors();
     } catch (error) {
       console.error("Error adding sponsor:", error);
@@ -108,7 +108,15 @@ export default function Sponsors() {
             {sponsors.map((sponsor) => (
               <tr key={sponsor.id} className={sponsor.status === 'pending' ? 'bg-yellow-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sponsor.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sponsor.contactEmail}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {sponsor.contactEmail ? (
+                    <div>{sponsor.contactEmail}</div>
+                  ) : (
+                    <div className="text-gray-400 italic">Belirtilmedi</div>
+                  )}
+                  {sponsor.phone && <div className="text-xs mt-1">{sponsor.phone}</div>}
+                  {sponsor.contactPerson && <div className="text-xs mt-1">{sponsor.contactPerson}</div>}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {sponsor.status === 'active' && (
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
@@ -154,7 +162,7 @@ export default function Sponsors() {
                           {sponsor.status === 'active' ? 'Pasife Al' : 'Aktifleştir'}
                         </button>
                         <button 
-                          onClick={() => copyInviteLink(sponsor.contactEmail, sponsor.id)}
+                          onClick={() => copyInviteLink(sponsor.contactEmail || 'E-posta Yok', sponsor.id)}
                           className="text-gray-600 hover:text-gray-900 flex items-center"
                           title="Davet Linkini Kopyala"
                         >
@@ -216,12 +224,29 @@ export default function Sponsors() {
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">İletişim E-posta</label>
+                    <label className="block text-sm font-medium text-gray-700">İletişim E-posta (Opsiyonel)</label>
                     <input 
                       type="email" 
-                      required
                       value={newSponsor.contactEmail}
                       onChange={e => setNewSponsor({...newSponsor, contactEmail: e.target.value})}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Telefon (Opsiyonel)</label>
+                    <input 
+                      type="tel" 
+                      value={newSponsor.phone}
+                      onChange={e => setNewSponsor({...newSponsor, phone: e.target.value})}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Yetkili Kişi (Opsiyonel)</label>
+                    <input 
+                      type="text" 
+                      value={newSponsor.contactPerson}
+                      onChange={e => setNewSponsor({...newSponsor, contactPerson: e.target.value})}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>

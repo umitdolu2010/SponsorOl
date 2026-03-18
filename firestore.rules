@@ -43,20 +43,22 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
     function isValidUser(data) {
-      return hasRequiredFields(['email', 'name', 'createdAt']) &&
+      return hasRequiredFields(['email', 'name']) &&
              data.email is string && isValidEmail(data.email) &&
              (!('role' in data) || data.role == null || data.role in ['admin', 'sponsor', 'firm']) &&
              (!('requestedRole' in data) || data.requestedRole == null || data.requestedRole in ['admin', 'sponsor', 'firm']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.createdAt is string &&
-             (!('referenceId' in data) || (data.referenceId is string && data.referenceId.size() < 100)) &&
-             (!('sponsorStatus' in data) || (data.sponsorStatus is string && data.sponsorStatus in ['active', 'inactive', 'pending']));
+             (!('createdAt' in data) || data.createdAt is string) &&
+             (!('referenceId' in data) || data.referenceId == null || (data.referenceId is string && data.referenceId.size() < 100)) &&
+             (!('sponsorStatus' in data) || data.sponsorStatus == null || (data.sponsorStatus is string && data.sponsorStatus in ['active', 'inactive', 'pending']));
     }
 
     function isValidSponsor(data) {
-      return hasRequiredFields(['name', 'contactEmail', 'status', 'createdAt']) &&
+      return hasRequiredFields(['name', 'status', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.contactEmail is string && isValidEmail(data.contactEmail) &&
+             (!('contactEmail' in data) || data.contactEmail == '' || (data.contactEmail is string && isValidEmail(data.contactEmail))) &&
+             (!('phone' in data) || data.phone == '' || (data.phone is string && data.phone.size() < 50)) &&
+             (!('contactPerson' in data) || data.contactPerson == '' || (data.contactPerson is string && data.contactPerson.size() < 100)) &&
              data.status in ['active', 'inactive', 'pending'] &&
              data.createdAt is string;
     }
@@ -115,7 +117,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
       allow create: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == null))) && isValidUser(request.resource.data);
-      allow update: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && request.resource.data.role == resource.data.role)) && isValidUser(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow update: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId && request.resource.data.role == resource.data.role)) && isValidUser(request.resource.data) && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
       allow delete: if isAdmin();
     }
 

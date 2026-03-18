@@ -47,7 +47,13 @@ export default function Users() {
     }
 
     try {
-      const updateData: any = { role: assignRole };
+      const updateData: any = { 
+        role: assignRole,
+        requestedRole: null // Clear the requested role once assigned
+      };
+      if (!selectedUser.createdAt) {
+        updateData.createdAt = new Date().toISOString();
+      }
       if (assignRole === 'sponsor' || assignRole === 'firm') {
         updateData.referenceId = assignRefId;
       } else {
